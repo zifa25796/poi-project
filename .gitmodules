@@ -1,0 +1,6 @@
+[submodule "VoiceLine"]
+	path = VoiceLine
+	url = https://github.com/zifa25796/VoiceLine
+[submodule "CameraView"]
+	path = CameraView
+	url = https://github.com/zifa25796/POI-MachineVision
