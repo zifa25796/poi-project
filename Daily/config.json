@@ -1,0 +1,15 @@
+{
+  "hourly_chime": {
+    "enabled": true,
+    "idle_timeout_minutes": 15
+  },
+  "api_server": {
+    "enabled": true,
+    "port": 9000
+  },
+  "camera_view": {
+    "enabled": true,
+    "hud_duration_seconds": 5,
+    "voice_delay_seconds": 0
+  }
+}

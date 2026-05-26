@@ -1,0 +1,25 @@
+# Ignore the sibling projects which have their own repositories
+CameraView/
+VoiceLine/
+
+# Common Python ignores
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+env/
+venv/
+.venv/
+
+# Editor configs
+.vscode/
+.idea/
+
+# Claude metadata
+**/.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
