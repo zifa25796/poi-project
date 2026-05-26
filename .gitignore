@@ -1,7 +1,3 @@
-# Ignore the sibling projects which have their own repositories
-CameraView/
-VoiceLine/
-
 # Common Python ignores
 __pycache__/
 *.py[cod]
