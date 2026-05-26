@@ -42,7 +42,51 @@ git push
 
 ## Included: Daily
 
-Daily is included as a local subfolder (`Daily/`). Key points (extracted from `Daily/README.md`):
+Daily is included as a local subfolder (`Daily/`). IMPORTANT: Daily depends on two sibling projects — VoiceLine (TTS) and CameraView (HUD). You MUST configure/install those projects before Daily will function correctly. See the Prerequisites below.
+
+Prerequisites (required before running Daily)
+
+1. Initialize submodules (only needed if you cloned this repo):
+
+```bash
+git submodule update --init --recursive
+```
+
+2. VoiceLine (TTS)
+- Install dependencies using the system Python (not a conda environment):
+
+```powershell
+C:\Users\zeke\AppData\Local\Programs\Python\Python310\python.exe -m pip install -e VoiceLine
+C:\Users\zeke\AppData\Local\Programs\Python\Python310\python.exe -m pip install edge-tts pydub numpy sounddevice num2words
+# Ensure ffmpeg is installed on the system (required by pydub):
+# Windows: winget install ffmpeg
+```
+- Pre-seed the TTS word library (recommended):
+
+```bash
+cd VoiceLine
+C:\Users\zeke\AppData\Local\Programs\Python\Python310\python.exe scripts/seed_tts_library.py
+```
+
+3. CameraView (HUD)
+- Install dependencies:
+
+```powershell
+pip install face_recognition opencv-python numpy Pillow
+```
+- Add 3–5 clear front-facing photos of yourself to:
+
+```
+CameraView/known_faces/
+```
+- Run the HUD to verify your photos are recognized:
+
+```bash
+cd CameraView
+C:\Users\zeke\AppData\Local\Programs\Python\Python310\python.exe machine_vision.py
+```
+
+Daily will not announce the time or perform return-detection unless both VoiceLine and CameraView are properly configured and available to the system Python environment.
 
 Features
 
@@ -64,7 +108,7 @@ Daily/
 
 ## Daily dependencies & run
 
-Install required Python packages for Daily / CameraView interaction:
+Install required Python packages for Daily / CameraView interaction (if not already installed):
 
 ```powershell
 pip install face_recognition opencv-python numpy Pillow
@@ -74,13 +118,13 @@ Run the companion:
 
 ```powershell
 cd C:\Root\CS\Python\POI\Daily
-python app.py
+C:\Users\zeke\AppData\Local\Programs\Python\Python310\python.exe app.py
 ```
 
 Quick test:
 
 ```powershell
-python test_features.py
+C:\Users\zeke\AppData\Local\Programs\Python\Python310\python.exe test_features.py
 ```
 
 ## CameraView (HUD) — initialization notes
