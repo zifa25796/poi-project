@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "mcp__voice-line__voice_speak"
+      "mcp__voice-line__voice_speak",
+      "Bash(C:/Users/zeke/AppData/Local/Programs/Python/Python310/python.exe *)",
+      "Bash(C:/Users/zeke/AppData/Local/Programs/Python/Python310/python.exe -c ' *)",
+      "Bash(C:/Users/zeke/AppData/Local/Programs/Python/Python310/python.exe -m *)"
     ]
   }
 }
