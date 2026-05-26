@@ -13,9 +13,6 @@ venv/
 .vscode/
 .idea/
 
-# Claude metadata
-**/.claude/
-
 # OS files
 .DS_Store
 Thumbs.db
