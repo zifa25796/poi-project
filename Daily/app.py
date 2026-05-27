@@ -108,6 +108,20 @@ def main():
     if api_enabled:
         threading.Thread(target=_start_api, args=(api_port,), daemon=True).start()
 
+    # ── startup identity check ──────────────────────────
+    if camera_enabled:
+        _app("Checking identity on startup...")
+        try:
+            hud_dur = camera_cfg.get("hud_duration_seconds", 5)
+            voice_del = camera_cfg.get("voice_delay_seconds", 1)
+            from identity_check import is_admin
+            if is_admin(duration_seconds=hud_dur, voice_delay=voice_del):
+                _app("ADMIN confirmed — welcome back")
+            else:
+                _app("Not ADMIN or no face detected")
+        except Exception as e:
+            _app(f"Startup camera check failed: {e}")
+
     last_announced = None
     was_away = False
     return_cooldown = 0  # skip N seconds after a return event
