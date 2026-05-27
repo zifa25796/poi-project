@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import sys
-import os
 import threading
 from datetime import datetime
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "VoiceLine", "src"))
 from voice_line import VoiceLine
 
 HOUR_WORDS = {

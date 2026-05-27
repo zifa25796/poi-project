@@ -5,7 +5,7 @@ import os
 import time
 import threading
 
-PYTHON = "C:/Users/zeke/AppData/Local/Programs/Python/Python310/python.exe"
+PYTHON = sys.executable
 RUNNER = os.path.join(os.path.dirname(__file__), "..", "CameraView", "hud_scan_runner.py")
 
 
