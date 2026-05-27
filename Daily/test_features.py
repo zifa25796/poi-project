@@ -2,10 +2,6 @@
 
 import json
 import os
-import sys
-
-sys.path.insert(0, os.path.dirname(__file__))
-
 from datetime import datetime
 from hourly_chime import chime
 

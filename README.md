@@ -18,39 +18,41 @@ git clone --recurse-submodules <repo-url>
 git submodule update --init --recursive
 ```
 
-### 2. VoiceLine (TTS)
+### 2. Install dependencies (uv)
 
 ```bash
-cd VoiceLine
-pip install -e .
-pip install edge-tts pydub numpy sounddevice num2words
-# pydub requires ffmpeg: winget install ffmpeg (Windows) / brew install ffmpeg (macOS)
-python scripts/seed_tts_library.py   # pre-generate ~300 common words (recommended)
+uv sync
 ```
+
+This creates a `.venv` and installs all packages, including VoiceLine as an editable install.
+
+System requirement: **ffmpeg** must be installed (required by pydub for audio processing).
+- Windows: `winget install ffmpeg`
+- macOS: `brew install ffmpeg`
 
 ### 3. CameraView (HUD)
-
-```bash
-pip install face_recognition opencv-python numpy Pillow
-```
 
 Add 3–5 clear front-facing photos of yourself to `CameraView/known_faces/`. Verify:
 
 ```bash
-cd CameraView
-python machine_vision.py
+uv run python CameraView/machine_vision.py
 ```
 
-### 4. Run Daily
+### 4. Seed VoiceLine (optional)
+
+Pre-generate ~300 common words to speed up first use:
 
 ```bash
-cd Daily
-python app.py
+uv run python VoiceLine/scripts/seed_tts_library.py
 ```
 
-Quick test: `python test_features.py`
+### 5. Run Daily
 
-Daily will not function unless both VoiceLine and CameraView are properly configured.
+```bash
+uv run python Daily/app.py
+```
+
+Quick test: `uv run python Daily/test_features.py`
 
 ## Project layout
 
@@ -61,6 +63,7 @@ Daily/
 ├── identity_check.py   # Face check via CameraView (subprocess)
 ├── idle_detector.py    # Win32 keyboard/mouse idle detection
 ├── config.json         # Feature toggles & timing
+├── api_server.py       # HTTP API for remote trigger
 ├── test_features.py    # Quick test of both features
 └── README.md
 ```

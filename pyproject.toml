@@ -1,0 +1,17 @@
+[project]
+name = "poi"
+version = "0.1.0"
+description = "Person of Interest desktop tools"
+requires-python = ">=3.10"
+dependencies = [
+    "voice-line",
+    "face-recognition>=1.3.0",
+    "opencv-python>=4.8.0",
+    "dlib<20",
+    "pillow>=9.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+]
+
+[tool.uv.sources]
+voice-line = { path = "VoiceLine", editable = true }
