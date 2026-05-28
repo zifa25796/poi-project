@@ -16,3 +16,6 @@ venv/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local config overrides (contains secrets)
+**/config.local.json

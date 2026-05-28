@@ -11,5 +11,14 @@
     "enabled": true,
     "hud_duration_seconds": 5,
     "voice_delay_seconds": 0
+  },
+  "cloudflare_tunnel": {
+    "enabled": true,
+    "cloudflared_path": "C:\\Root\\ProgrameFile\\CloudFlared\\cloudflared.exe",
+    "telegram": {
+      "enabled": true,
+      "bot_token": "",
+      "chat_id": ""
+    }
   }
 }
