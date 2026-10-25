@@ -12,7 +12,7 @@ RUNNER = os.path.join(os.path.dirname(__file__), "..", "CameraView", "hud_scan_r
 
 def is_admin(duration_seconds: float = 5.0, voice_delay: float = 1.0) -> bool:
     """Launch Machine HUD in a subprocess.
-    Speaks 'welcome back admin' *voice_delay* seconds after ADMIN is first detected."""
+    Speaks after the HUD exits and at least *voice_delay* seconds after first detection."""
 
     proc = subprocess.Popen(
         [PYTHON, RUNNER, str(duration_seconds)],

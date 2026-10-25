@@ -16,30 +16,23 @@ from datetime import datetime
 
 from hourly_chime import chime
 from idle_detector import idle_seconds
+from voice_line.logging_setup import configure_logging
+
+configure_logging()
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
-
-# ── ANSI colours ──────────────────────────────────────────────────
-_CYAN = "\033[36m"
-_GREEN = "\033[32m"
-_MAGENTA = "\033[35m"
-_RESET = "\033[0m"
 
 # ── shared state ─────────────────────────────────────────────────
 _tunnel_url = None
 _url_lock = threading.Lock()
 
 
-def _app(msg: str):
-    """Print a timestamped app message in cyan."""
-    ts = datetime.now().strftime("%H:%M:%S")
-    print(f"{_CYAN}[APP  {ts}]{_RESET} {msg}")
+def _app(msg: str, level=logging.INFO):
+    logging.getLogger("daily.app").log(level, msg)
 
 
-def _cf(msg: str):
-    """Print a timestamped cloudflare message in magenta."""
-    ts = datetime.now().strftime("%H:%M:%S")
-    print(f"{_MAGENTA}[CF   {ts}]{_RESET} {msg}")
+def _cf(msg: str, level=logging.INFO):
+    logging.getLogger("daily.tunnel").log(level, msg)
 
 
 def _deep_merge(base: dict, override: dict) -> dict:
@@ -66,63 +59,7 @@ def _start_api(port: int):
     from api_server import app as api_app
 
     uvicorn.run(api_app, host="0.0.0.0", port=port,
-                log_config=_uvicorn_log_config(), access_log=True)
-
-
-class _FaviconFilter(logging.Filter):
-    def filter(self, record):
-        msg = record.getMessage()
-        return "/favicon.ico" not in msg
-
-
-def _uvicorn_log_config() -> dict:
-    """Return a log config that uses [API  HH:MM:SS] prefix in green."""
-    fmt_default = f"{_GREEN}[API  %(asctime)s]{_RESET} %(message)s"
-    fmt_access = (
-        f'{_GREEN}[API  %(asctime)s]{_RESET} '
-        '%(client_addr)s - "%(request_line)s" %(status_code)s'
-    )
-    return {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "filters": {
-            "no_favicon": {
-                "()": f"{__name__}._FaviconFilter",
-            },
-        },
-        "formatters": {
-            "default": {
-                "()": "uvicorn.logging.DefaultFormatter",
-                "fmt": fmt_default,
-                "datefmt": "%H:%M:%S",
-            },
-            "access": {
-                "()": "uvicorn.logging.AccessFormatter",
-                "fmt": fmt_access,
-                "datefmt": "%H:%M:%S",
-            },
-        },
-        "handlers": {
-            "default": {
-                "formatter": "default",
-                "class": "logging.StreamHandler",
-                "stream": "ext://sys.stdout",
-            },
-            "access": {
-                "formatter": "access",
-                "class": "logging.StreamHandler",
-                "stream": "ext://sys.stdout",
-                "filters": ["no_favicon"],
-            },
-        },
-        "loggers": {
-            "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": False},
-            "uvicorn.error": {"level": "INFO"},
-            "uvicorn.access": {
-                "handlers": ["access"], "level": "INFO", "propagate": False,
-            },
-        },
-    }
+                log_config=None, access_log=False)
 
 
 def _send_telegram(bot_token: str, chat_id: str, msg: str):
@@ -131,9 +68,10 @@ def _send_telegram(bot_token: str, chat_id: str, msg: str):
     req = urllib.request.Request(url, data=data,
                                  headers={"Content-Type": "application/json"})
     try:
-        urllib.request.urlopen(req, timeout=10)
+        with urllib.request.urlopen(req, timeout=10):
+            logging.getLogger("daily.tg").info("Message sent")
     except Exception as e:
-        _cf(f"Telegram send failed: {e}")
+        logging.getLogger("daily.tg").warning("Send failed | %s", type(e).__name__)
 
 
 def _start_cloudflare_tunnel(port: int, cloudflared_path: str,
@@ -149,10 +87,10 @@ def _start_cloudflare_tunnel(port: int, cloudflared_path: str,
             text=True,
         )
     except FileNotFoundError:
-        _cf(f"cloudflared not found at '{cloudflared_path}'")
+        _cf(f"cloudflared not found at '{cloudflared_path}'", logging.ERROR)
         return
     except Exception as e:
-        _cf(f"Failed to start: {e}")
+        _cf(f"Failed to start: {e}", logging.ERROR)
         return
 
     url_pattern = re.compile(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com")
@@ -162,16 +100,20 @@ def _start_cloudflare_tunnel(port: int, cloudflared_path: str,
             found = True
             with _url_lock:
                 _tunnel_url = m.group(0)
-            _cf(f"Public URL: {_MAGENTA}{_tunnel_url}{_RESET}")
+            _cf(f"Public URL: {_tunnel_url}")
             if tg_enabled:
                 _send_telegram(tg_token, tg_chat, _tunnel_url)
 
-    proc.wait()
+    code = proc.wait()
+    with _url_lock:
+        _tunnel_url = None
+    _cf(f"Tunnel exited | code={code}", logging.WARNING)
 
 
 def _poll_telegram(bot_token: str):
     """Long-poll Telegram for /url command, reply with current tunnel URL."""
     offset = 0
+    poll_failed = False
     api_url = f"https://api.telegram.org/bot{bot_token}"
     while True:
         try:
@@ -180,6 +122,10 @@ def _poll_telegram(bot_token: str):
                                          headers={"Content-Type": "application/json"})
             resp = urllib.request.urlopen(req, timeout=35)
             result = json.loads(resp.read())
+            resp.close()
+            if poll_failed:
+                logging.getLogger("daily.tg").info("Polling recovered")
+                poll_failed = False
             for update in result.get("result", []):
                 offset = update["update_id"] + 1
                 msg = update.get("message", {})
@@ -189,7 +135,10 @@ def _poll_telegram(bot_token: str):
                     with _url_lock:
                         reply = _tunnel_url or "Tunnel not ready yet"
                     _send_telegram(bot_token, str(chat_id), reply)
-        except Exception:
+        except Exception as exc:
+            if not poll_failed:
+                logging.getLogger("daily.tg").warning("Polling failed; retrying | %s", type(exc).__name__)
+                poll_failed = True
             time.sleep(5)
 
 
@@ -247,7 +196,7 @@ def main():
             else:
                 _app("Not ADMIN or no face detected")
         except Exception as e:
-            _app(f"Startup camera check failed: {e}")
+            _app(f"Startup camera check failed: {e}", logging.ERROR)
 
     last_announced = None
     was_away = False
@@ -272,7 +221,7 @@ def main():
                     else:
                         _app("Not ADMIN or no face detected")
                 except Exception as e:
-                    _app(f"Camera check failed: {e}")
+                    _app(f"Camera check failed: {e}", logging.ERROR)
                 return_cooldown = 120  # don't re-trigger for 2 min
 
             if return_cooldown > 0:

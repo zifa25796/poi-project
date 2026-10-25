@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "voice-line": {
+      "command": "uv",
+      "args": ["run", "--project", "/absolute/path/to/POI", "python", "/absolute/path/to/POI/integrations/mcp_server.py"],
+      "env": {"VOICELINE_API_URL": "http://127.0.0.1:9000"}
+    }
+  }
+}

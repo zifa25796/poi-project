@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+import logging
 from datetime import datetime
 
 from voice_line import VoiceLine
@@ -31,6 +32,7 @@ def _get_vl() -> VoiceLine:
 
 def safe_speak(text: str) -> None:
     """Thread-safe speak — prevents concurrent AudioSegment playback collisions."""
+    logging.getLogger("daily.voice").info("Queued | text=%r", text)
     with _speak_lock:
         _get_vl().speak(text)
 

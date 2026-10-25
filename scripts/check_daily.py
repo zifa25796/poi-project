@@ -1,14 +1,13 @@
 """Test both Daily features: hourly chime + return identity check (HUD window)."""
 
-import json
-import os
 from datetime import datetime
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "Daily"))
 from hourly_chime import chime
+from app import load_config
 
-
-def load_config():
-    with open(os.path.join(os.path.dirname(__file__), "config.json")) as f:
-        return json.load(f)
 
 
 def test_chime():

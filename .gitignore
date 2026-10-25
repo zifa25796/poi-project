@@ -19,3 +19,14 @@ Thumbs.db
 
 # Local config overrides (contains secrets)
 **/config.local.json
+
+backups/
+releases/
+*.zip
+build/
+dist/
+*.egg-info/
+**/.claude/settings.local.json
+**/.mcp.json
+
+.uv-cache/

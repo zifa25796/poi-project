@@ -1,107 +1,73 @@
-# Daily — Person of Interest Desktop Companion
+# Daily
 
-A background companion app that announces the time on the hour and recognizes
-your face when you return to the computer — all in the style of *Person of
-Interest*'s "The Machine."
+Windows background companion: hourly speech, return detection, CameraView HUD, and a VoiceLine HTTP API.
 
-## Features
+## Setup and launch
 
-**Hourly Chime** — Speaks the time at the top of each hour (e.g. "nine o'clock").
-Pauses automatically when you're away from the keyboard.
-
-**Return Detection** — When you come back after being idle, opens the Machine
-surveillance HUD, scans your face, and if you're ADMIN, says *"welcome back
-admin."*
-
-## Project Layout
-
-```
-Daily/
-├── app.py                # Main loop
-├── hourly_chime.py       # Time announcement via VoiceLine
-├── identity_check.py     # Face check via CameraView (subprocess)
-├── idle_detector.py      # Win32 keyboard/mouse idle detection
-├── config.json           # Feature toggles & timing
-├── test_features.py      # Quick test of both features
-└── README.md
-```
-
-Depends on two sibling projects:
-
-| Project | Path | Purpose |
-|---------|------|---------|
-| VoiceLine | `../VoiceLine` | POI-style speech synthesis |
-| CameraView | `../CameraView` | Face detection HUD |
-
-## Setup
-
-### 1. Install dependencies
+Follow the [root setup instructions](../README.md). Run from the POI root:
 
 ```powershell
-pip install face_recognition opencv-python numpy Pillow
+uv sync
+uv run python Daily/app.py
 ```
 
-VoiceLine dependencies are already installed if you've run it before.
+Daily uses the root environment with VoiceLine installed editable. CameraView runs in a separate process using the same Python executable. Press Ctrl+C to stop.
 
-### 2. Add your face
+## Configuration
 
-Put a clear photo of your face (`.jpg` or `.png`) in:
+Shared defaults are in `config.json`. Add personal overrides to ignored `config.local.json`; nested dictionaries merge with the defaults. Keep tokens and local executable paths in that override file.
 
-```
-..\CameraView\known_faces\
-```
+## Layout
 
-The HUD will recognize you as ADMIN.
+| File | Purpose |
+|---|---|
+| app.py | Main loop, configuration, API and tunnel startup |
+| api_server.py | HTTP endpoints for speech and library queries |
+| hourly_chime.py | Time announcements and serialized speech |
+| identity_check.py | CameraView subprocess integration |
+| idle_detector.py | Win32 keyboard/mouse idle detection |
+| config.json | Shared default configuration |
 
-### 3. Configure
+The MCP bridge belongs to `../integrations/mcp_server.py`. Client setup is documented in the root README.
 
-Edit `config.json`:
+## Logs
 
-```json
-{
-  "hourly_chime": {
-    "enabled": true,              // Master on/off
-    "idle_timeout_minutes": 5     // Pause chime after N min no activity
-  },
-  "camera_view": {
-    "enabled": true,              // Master on/off
-    "hud_duration_seconds": 5,    // How long HUD window stays
-    "voice_delay_seconds": 1      // Wait N seconds before "welcome back"
-  }
-}
-```
+Runtime logs use `[HH:MM:SS] LEVEL category module | event` on stderr. API requests
+include a request ID, path, status and response time; query strings are omitted.
+Speech logs show queued, started, completed or failed events, including text
+and duration. HTTP acceptance does not mean playback has completed. Telegram
+polling reports the first failure and recovery rather than repeating errors.
+Restart Daily after updating logging code. Logs are console-only.
 
-## Usage
+Interactive terminals color categories: LOCAL cyan (loopback requests), WEB
+magenta (remote/LAN or proxy-forwarded requests), SPEECH green (speech output),
+TTS blue (audio generation/refresh), BUILD blue (assembly), SYSTEM white.
+Warnings have yellow level labels; errors have red level labels. Forwarding
+headers take precedence over loopback addresses so Cloudflare traffic is WEB.
+These labels are for diagnostics, not authentication. Redirected logs and
+terminals with `NO_COLOR` set use plain text.
 
-### Run the companion
+Event labels also carry color: Queued cyan, Started/Generating blue,
+Completed/Saved/Refreshed green, Request cyan or magenta by origin, warnings
+yellow and failures red. Words and clip counts are bold yellow; speech text
+is bright white, durations green, and voice/path/request metadata cyan.
 
-```powershell
-cd C:\Root\CS\Python\POI\Daily
-python app.py
-```
+## Checks
 
-Press `Ctrl+C` to stop.
+From the POI root, `uv run python -m unittest discover -s tests -v` runs automated tests. `uv run python scripts/check_daily.py` manually checks hourly speech and return detection, opening the camera and playing sound.
 
-### Quick test
+## HTTP and return detection
 
-```powershell
-python test_features.py
-```
+`GET /` reports health; `/say?text=...` accepts background playback on the PC;
+`/say/local?text=...` returns a WAV for playback by the requesting browser.
+`/time` speaks the current hour, `/stats` reports coverage, and `/missing?top=20`
+lists missing common words (top: 1–1000). The `/say/local` name describes where
+the audio is played, not whether the request is local or remote.
 
-Tests both the hourly chime and a simulated return detection.
+The optional Cloudflare quick tunnel publishes a random URL. Telegram can receive
+that URL on startup and answer `/url`. The local MCP bridge uses the same API
+through loopback, independently of the public URL.
 
-## How It Works
-
-1. **Idle detection** — Polls `GetLastInputInfo` every second. If no keyboard or
-   mouse input for `idle_timeout_minutes`, the user is considered "away."
-
-2. **Hourly chime** — At minute 0 of each hour, calls VoiceLine to speak the
-   time. Skipped if the user is away.
-
-3. **Return detection** — When idle transitions from "away" to "present," the
-   CameraView HUD opens in a subprocess. If ADMIN is detected, VoiceLine speaks
-   *"welcome back admin"* after the configured delay. The HUD window closes
-   after `hud_duration_seconds`.
-
-4. **Subprocess isolation** — The HUD scan runs in a separate process to avoid
-   OpenCV camera resource contention with the main loop.
+Camera checks run on startup and on return after the idle timeout, with a
+120-loop-iteration cooldown. The welcome is spoken after the HUD process exits,
+and no earlier than `voice_delay_seconds` after first ADMIN detection.
